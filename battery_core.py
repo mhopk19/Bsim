@@ -7,31 +7,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 import time
 
-"""
-MLP vanilla deep state space model
-class MLP_ssm(torch.nn.Module):
-    # state x = [vts, vtl, soc, v batt]
-    # input is one value
-    def __init__(self):
-        super(MLP_ssm, self).__init__()
-        self.hist_states = 3
-        input_dim = 4 * self.hist_states + 1
-        # parameters rs, rts,rtl,cts,ctl,voc
-        output_dim = 6
-        self.fc1 = nn.Linear(input_dim)
-        self.fc2 = nn.Linear(3 * input)
-        self.fout = nn.Linear(output_dim)
-        
-    def forward(self,x):
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.fc2(x)
-        x = F.relu(x)
-        x = self.fout(x)
-        return x
-"""
-
-
 # empirical Poopanya et. al found parameters
 def Rs(soc):
     # milli ohms
@@ -80,6 +55,7 @@ def custom_empirical_parameters(soc,params):
               np.interp(soc, tablex, ctl_tabley),
               np.interp(soc, tablex, rs_tabley),
               np.interp(soc, tablex, voc_tabley)]
+    # rts, rtl, cts, ctl, rs, voc
     return params
 
 
@@ -88,7 +64,7 @@ core 3200mAH 18650 Battery model with default parameters
 and functions for updating state space parameters
 """
 class battery18650():
-    def __init__(self, start_voltage  = 4.2, start_soc = 100, battery_params_dict = {}):
+    def __init__(self, start_voltage  = 4.2, start_soc = 100, battery_params = {}):
         self.Rs = Rs(start_soc)
         self.Rts = Rts(start_soc)
         self.Rtl = Rtl(start_soc)
@@ -101,12 +77,12 @@ class battery18650():
         self.param_func = self.empirical_defaults
         self.dt = 0.1
         # loading battery params for dictionary
-        if len(battery_params_dict) > 0:
-            self.load_battery_params(battery_params_dict)
+        if len(battery_params) > 0:
+            self.load_battery_params(battery_params)
       
     def load_battery_params(self, dict):
-        # fill this function in to update battery params based on input dict.
-        pass
+        if "capacity" in dict.keys():
+            self.capacity = dict["capacity"]
     
     def clear_data(self):
         self.x_hist = np.zeros((0,4))
@@ -143,10 +119,11 @@ class battery18650():
         self.x[3] = self.Voc - self.Rs * i - self.x[0] - self.x[1]
         self.x_hist = np.vstack((self.x_hist, self.x))
 
-def create_rnn_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limits = (-1,1), 
-                    battery_params_dict = {}):
-    
-    battery = battery18650()
+
+def create_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limits = (-1,1), 
+                    battery_params_dict = {}, rnn_data = True):
+    print("creating battery data...")
+    battery = battery18650(battery_params = battery_params_dict)
     # battery cycling random walk state
     rw_state = np.array([0,0]) # 0 - frequency, 1 - amplitude
     num_batches = int(total_time / batch_timesteps)
@@ -171,6 +148,7 @@ def create_rnn_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limi
             if (battery.x[2] <= 0.05):
                 new_value = 0
             i_batt = np.vstack((i_batt, new_value))
+            
         for t in range(batch_timesteps):
             battery.step(i_batt[t])
         
@@ -178,15 +156,37 @@ def create_rnn_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limi
         #print("batch data shape", batch_data.shape)
         #print("batched_data shape", batched_data.shape)
         batched_data[batch] = batch_data
-        print("finished", batched_data.shape)
         # clear battery data
         battery.clear_data()
     
-    print("full batched data shape", batched_data.shape)
+    print("finished creating battery data [data shape] ", batched_data.shape)
     batched_data = batched_data.reshape((-1, 3, 100))
+    
+    # batch data shape
+    """
+    batched data shape
+    batch x (i_batt,v_batt,SOC) x time step
+    """
         
     return batched_data
     
+def make_rnn_data(data):
+    """
+    The input to this function is batched data 
+    and the output is a set of inputs and outputs for rnn training
+    we have to shift input with regards to output 
+    offset the time sequences and also shuffle them
+    """
+    num_batches = data.shape[0]
+    num_features = data.shape[1]
+    num_timesteps = data.shape[2]
+    rnn_input = np.empty((num_batches, num_features, num_timesteps - 1))
+    rnn_output = np.empty((num_batches, num_features, num_timesteps - 1))
+    for i in range(num_batches):
+        rnn_input[i,:,:] = data[i,:,:-1]
+        rnn_output[i,:,:] = data[i,:,:-1]
+        
+    return rnn_input, rnn_output
 
 def draw_time_sequences(data, dt = 0.1):
     for batch_data in data:
@@ -204,11 +204,15 @@ def draw_time_sequences(data, dt = 0.1):
 
 
 if __name__ == "__main__":
-    data = create_rnn_data(100, 200000, 0.1)
+    data = create_data(100, 200000, 0.1)
+    
     print("data shape", data.shape)
     time.sleep(0.5)
-    while(1):
-        draw_time_sequences(data)
+    draw_time_sequences(data)
+        
+    data = make_rnn_data(data)
+    print("rnn input shape", data[0].shape)
+    print("rnn output shape", data[1].shape)
     
     
     """
