@@ -160,7 +160,7 @@ def create_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limits =
         battery.clear_data()
     
     print("finished creating battery data [data shape] ", batched_data.shape)
-    batched_data = batched_data.reshape((-1, 3, 100))
+    batched_data = batched_data.reshape((-1, 3, batch_timesteps))
     
     # batch data shape
     """
