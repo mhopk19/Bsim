@@ -18,7 +18,7 @@ if __name__ == '__main__':
     Kf = EKF()
     
     # batch we are zeroing in on
-    batch = 12
+    batch = 0
 
     time         = [0]
     true_SoC = [data[batch][2][0]]

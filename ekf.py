@@ -81,7 +81,7 @@ class ExtendedKalmanFilter(object):
         
         self.x = np.matrix([[0.0],\
                        [0.0],
-                       [1.0]])
+                       [0.60]])
     
         exp_ts = math.exp(-self.time_step/(Cts*Rts))
         exp_tl = math.exp(-1/(Ctl*Rtl))
@@ -94,7 +94,7 @@ class ExtendedKalmanFilter(object):
         # control-input model
         self.B = self.time_step * np.matrix([[Rts*(1-exp_ts)],\
                        [Rtl*(1-exp_tl)],
-                       [1/(self.Q_tot * 3200)]])
+                       [self.time_step/(self.Q_tot * 3200)]])
     
         # variance from std_dev
         var = self.std_dev ** 2
@@ -186,6 +186,7 @@ class ExtendedKalmanFilter(object):
         
         self.P = I_KH * self.P * I_KH.T + self.K * self.R * self.K.T
         #self.P = I_KH @ self.P
+        print("error covariance", self.P)
     
     def predict(self, u=0):
         self.u = u
