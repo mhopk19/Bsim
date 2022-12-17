@@ -16,12 +16,14 @@ if __name__ == '__main__':
     
     #get configured EKF
     Kf = EKF()
-
-    batch = 25
+    
+    # batch we are zeroing in on
+    batch = 12
 
     time         = [0]
     true_SoC = [data[batch][2][0]]
     estim_SoC = [Kf.x[0,0]]
+    estim_voltage = [0]
     true_voltage = [data[batch][1][0]]
     mes_voltage = [data[batch][1][0] + np.random.normal(0,0.1,1)[0]]
     current = [data[batch][0][0]]
@@ -34,9 +36,6 @@ if __name__ == '__main__':
     mes_voltage  = [battery_simulation.voltage + np.random.normal(0,0.1,1)[0]]
     current      = [battery_simulation.current]
     """
-        
-    # iterate through data and update the simulation
-    batch = 12
 
     for i in range(timesteps):
         actual_current = data[batch][0][i]
@@ -50,11 +49,12 @@ if __name__ == '__main__':
         Kf.update(mes_voltage[-1] + Kf.Rs * actual_current)
         
         true_SoC.append(data[batch][2][i])
-        estim_SoC.append(Kf.x[0,0])
-        print("soc variance", Kf._P[0,0])
+        estim_SoC.append(Kf.x[2,0])
+        estim_voltage.append(Kf.OCV_func(Kf.x[2,0]) - Kf.x[0,0] - Kf.x[1,0] - Kf.Rs*actual_current)
+        print("estimates", Kf.x)
         
     plt.plot(range(timesteps+1), true_SoC,'g')
-    plt.plot(range(timesteps+1), estim_SoC,'b')
+    plt.plot(range(timesteps+1), estim_SoC,'g--')
     plt.plot(range(timesteps+1), current,'k')
-    plt.plot(range(timesteps+1), np.array(true_SoC) - np.array(estim_SoC),'r')
+    plt.plot(range(timesteps+1), estim_voltage,'r')
     plt.show()

@@ -1,7 +1,7 @@
 from numpy import zeros, eye
 import kf_utils as utils
 import numpy as np
-
+import math
 # empirical Poopanya et. al found parameters
 """
 def Rs(soc):
@@ -46,7 +46,7 @@ class ExtendedKalmanFilter(object):
      
     def __init__(self, *args):
         self.time_step = 0.1
-        self.std_dev = 0.1
+        self.std_dev = 0.05
         self.Q_tot = 1
         if (len(args) == 0):
             self.randles_circuit()
@@ -70,7 +70,7 @@ class ExtendedKalmanFilter(object):
         # x = [[SoC], [RC voltage]]
         if (len(args) == 0):
             # parameters for 100% soc poopanya
-            Rs, Rts, Cts, Rtl, Ctl = [56, 13, 11, 10, 5]
+            Rs, Rts, Cts, Rtl, Ctl = [56/1000, 13/100, 11*1000, 10/1000, 5*1000]
         else:
             Rs, Rts, Cts, Rtl, Ctl = [*args]
         self.Rs = Rs
@@ -79,22 +79,22 @@ class ExtendedKalmanFilter(object):
         self.Rtl = Rtl
         self.Ctl = Ctl
         
-        self.x = np.matrix([[0.5],\
+        self.x = np.matrix([[0.0],\
                        [0.0],
-                       [0.0]])
+                       [1.0]])
     
-        exp_ts = (-self.time_step/(Cts*Rts))
-        exp_tl = (-self.time_step/(Ctl*Rtl))
+        exp_ts = math.exp(-self.time_step/(Cts*Rts))
+        exp_tl = math.exp(-1/(Ctl*Rtl))
         
         # state transition model
         self.F = np.matrix([[exp_ts, 0, 0],\
                        [0, exp_tl, 0],
-                       [0,     0,  0]])
+                       [0,     0,  1]])
     
         # control-input model
-        self.B = np.matrix([[self.time_step/Cts],\
-                       [self.time_step/Ctl],
-                       [self.time_step/(self.Q_tot * 3200)]])
+        self.B = self.time_step * np.matrix([[Rts*(1-exp_ts)],\
+                       [Rtl*(1-exp_tl)],
+                       [1/(self.Q_tot * 3200)]])
     
         # variance from std_dev
         var = self.std_dev ** 2
@@ -114,14 +114,16 @@ class ExtendedKalmanFilter(object):
     
 
 
-    def G_prime_update(self):
+    def G_prime_update(self, x):
         OCV_function = utils.Polynomial([2.87, 4.75, -14.4, 24.1, -13.72, -4.04, 4.67])  
-        self.G_prime = np.matrix([[-1, - 1, OCV_function.deriv(self.x[0,0])]])
+        self.OCV_func = OCV_function
+        self.G_prime = np.matrix([[-1, - 1, OCV_function.deriv(x[2,0])]])
         return self.G_prime
     
-    def G_update(self):
+    def G_update(self, x, u):
         OCV_function = utils.Polynomial([2.87, 4.75, -14.4, 24.1, -13.72, -4.04, 4.67])  
-        self.G = OCV_function(self.x[0,0]) - self.x[1,0]
+        self.OCV_func = OCV_function
+        self.G = OCV_function(x[2,0]) - x[0,0] - x[1,0] - self.Rs * u
         return self.G
  
     
@@ -145,27 +147,49 @@ class ExtendedKalmanFilter(object):
         return pred, pred_cov
 
     def update(self, z):
+        """
+        def ekf_estimation(xEst, PEst, z, u):
+            #  Predict
+            xPred = motion_model(xEst, u)
+            jF = jacob_f(xEst, u)
+            PPred = jF @ PEst @ jF.T + Q
+        
+            #  Update
+            jH = jacob_h()
+            zPred = observation_model(xPred)
+            y = z - zPred
+            S = jH @ PPred @ jH.T + R
+            K = PPred @ jH.T @ np.linalg.inv(S)
+            xEst = xPred + K @ y
+            PEst = (np.eye(len(xEst)) - K @ jH) @ PPred
+            return xEst, PEst
+        """
+        G_prime = self.G_prime_update(self.x)
+        G = self.G_update(self.x, self.u)
 
-        P = self.P
-        R = self.R
-        x = self.x
-
-        G_prime = self.G_prime_update()
-        G = self.G_update()
-
-        S = G_prime * P * G_prime.T + R
-        K = P * G_prime.T * S.I
-        self._K = K
+        S = G_prime @ self.P @ G_prime.T + self.R
+        print("S", S)
+        print("S.I", S.I)
+        self.K = self.P @ G_prime.T @ S.I
 
         hx =  G
-        y = np.subtract(z, hx)
-        self._x = x + K * y
+        # inovation
+        print("K", self.K)
+        inov = np.subtract(z, hx)
+        self.x = self.x + self.K * inov
 
-        KH = K * G_prime
+        #G_prime = self.G_prime_update(self.x)
+
+        KH = self.K * G_prime
         I_KH = np.identity((KH).shape[1]) - KH
-        self._P = I_KH * P * I_KH.T + K * R * K.T
-
+        
+        
+        self.P = I_KH * self.P * I_KH.T + self.K * self.R * self.K.T
+        #self.P = I_KH @ self.P
+    
     def predict(self, u=0):
-        self.x = self.F * self.x + self.B * u
-        self.P = self.F * self.P * self.F.T + self.Q
+        self.u = u
+        self.x_prev = self.x
+        self.x = self.F @ self.x + self.B * u
+        self.P = self.F @ self.P @ self.F.T + self.Q
 
