@@ -9,6 +9,7 @@ def poopanya_VOC(soc):
     return ocv
 
 
+
 class Polynomial:
     def __init__(self, coeffs):
         self._coeffs = coeffs
@@ -60,7 +61,11 @@ if __name__ == '__main__':
             else:
                 plt.pause(0.01)
             return cost
-        result = sciopt.least_squares(loss,(3.1400, 3.9905, -14.2391, 24.4140, -13.5688, -4.0621, 4.5056),jac='3-point')
+        
+        # high-order polynomial
+        #result = sciopt.least_squares(loss,(3.1400, 3.9905, -14.2391, 24.4140, -13.5688, -4.0621, 4.5056),jac='3-point')
+        # reduced polynomial
+        result = sciopt.least_squares(loss,(3.1,2.4), jac='3-point')
         return result
     
     my_poly = Polynomial([0])
