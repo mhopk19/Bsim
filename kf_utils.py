@@ -91,7 +91,7 @@ if __name__ == '__main__':
     plt.cla()
     draw_SOC_func(Polynomial(list(result.x)))
     draw_SOC_func(poopanya_VOC, color = 'b', input_scale = 100)
-    plt.title("Optimized OCV polynomial")
+    plt.title("Optimized OCV polynomial (Linearized)")
     plt.ylabel("VOC")
     plt.xlabel("SOC")
     plt.legend(["polynomial", "measured"])

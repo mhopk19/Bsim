@@ -9,16 +9,16 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     # time period
     timestep = 0.1
-    timesteps = 200
+    timesteps = 300
 
-    data = bat.create_data(batch_timesteps = timesteps, total_time = 20000, dt = 0.1)
+    data = bat.create_data(batch_timesteps = timesteps, total_time = 30000, dt = 0.1)
     print("data shape", data.shape)
     
     #get configured EKF
     Kf = EKF()
     
     # batch we are zeroing in on
-    batch = 0
+    batch = 86
 
     time         = [0]
     true_SoC = [data[batch][2][0]]
