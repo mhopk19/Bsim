@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+
 """implementation of the Variational Recurrent
 Neural Network (VRNN) from https://arxiv.org/abs/1506.02216
 using unimodal isotropic gaussian distributions for 
@@ -18,21 +19,25 @@ inference, prior, and generating models."""
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 EPS = torch.finfo(torch.float).eps # numerical logs
 
-fig, ax = plt.subplots(1,3)
+#fig, ax = plt.subplots(1,4)
 showed = False
 
 class VRNN(nn.Module):
     def __init__(self, x_dim, h_dim, z_dim, n_layers, bias=False):
         super(VRNN, self).__init__()
 
+        self.plotting = True
+
         self.x_dim = x_dim
         self.h_dim = h_dim
         self.z_dim = z_dim
+        self.predict_dim = 2
+        predict_dim = self.predict_dim
         self.n_layers = n_layers
 
         #feature-extracting transformations
         self.phi_x = nn.Sequential(
-            nn.Linear(x_dim, h_dim),
+            nn.Linear(x_dim-1, h_dim),
             nn.ReLU(),
             nn.Linear(h_dim, h_dim),
             nn.ReLU())
@@ -67,12 +72,12 @@ class VRNN(nn.Module):
             nn.Linear(h_dim, h_dim),
             nn.ReLU())
         self.dec_std = nn.Sequential(
-            nn.Linear(h_dim, x_dim),
+            nn.Linear(h_dim, predict_dim),
             nn.Softplus())
         #self.dec_mean = nn.Linear(h_dim, x_dim)
         self.dec_mean = nn.Sequential(
-            nn.Linear(h_dim, x_dim),
-            nn.Sigmoid())
+            nn.Linear(h_dim, predict_dim))#,
+            #nn.Sigmoid())
 
         #recurrence
         self.rnn = nn.GRU(h_dim + h_dim, h_dim, n_layers, bias)
@@ -87,13 +92,13 @@ class VRNN(nn.Module):
         kld_loss = 0
         nll_loss = 0
 
-        estimation = np.zeros(x.shape)
-        std_estimation = np.zeros(x.shape)
+        estimation = np.zeros((x.shape[0],x.shape[1],2))
+        std_estimation = np.zeros((x.shape[0],x.shape[1],2))
 
         h = torch.zeros(self.n_layers, x.size(1), self.h_dim, device=device)
         for t in range(1,x.size(0)):
 
-            phi_x_t = self.phi_x(x[t-1])
+            phi_x_t = self.phi_x(x[t-1,:,:20])
 
             #encoder
             enc_t = self.enc(torch.cat([phi_x_t, h[-1]], 1))
@@ -124,7 +129,7 @@ class VRNN(nn.Module):
             #computing losses
             kld_loss += self._kld_gauss(enc_mean_t, enc_std_t, prior_mean_t, prior_std_t)
             #nll_loss += self._nll_gauss(dec_mean_t, dec_std_t, x[t])
-            nll_loss += self._nll_bernoulli(dec_mean_t, x[t])
+            nll_loss += self._kld_gauss(dec_mean_t, dec_std_t, x[t,:,19:], 0.1 * torch.ones((dec_mean_t.shape)).float())
 
             all_enc_std.append(enc_std_t)
             all_enc_mean.append(enc_mean_t)
@@ -133,48 +138,65 @@ class VRNN(nn.Module):
         
         
         # show what the network is actuall calculating
-        global showed
-        if (np.random.normal() < 0.01):
-            ax[0].set_title("iterated transformed data")
-            ax[1].set_title("est. mean")
-            ax[2].set_title("est. std")
-            ax[0].imshow(x[:-1,0,:])
-            ax[1].imshow(estimation[:,0,:])
-            ax[2].imshow(std_estimation[:,0,:])
-            if (showed == False):
-                plt.colorbar()
-                plt.pause(1)
-                showed = True
-            plt.pause(0.01)
+        if (self.plotting):
+            global showed
+            if (np.random.normal() < 0.01):
+                """
+                ax[0].set_title("iterated transformed data")
+                ax[1].set_title("est. mean")
+                ax[2].set_title("est. std")
+                ax[0].imshow(x[:-1,0,:])
+                ax[1].imshow(estimation[:,0,:])
+                ax[2].imshow(std_estimation[:,0,:])
+                """
+                
+                # plot trajectory differences
+                plt.cla()
+                voltage_avg = estimation[:,0,0]
+                voltage_min = voltage_avg - std_estimation[:,0,0]
+                voltage_max = voltage_avg + std_estimation[:,0,0]
+                soc_avg = estimation[:,0,1]
+                soc_min = soc_avg - std_estimation[:,0,1]
+                soc_max = soc_avg + std_estimation[:,0,1]            
+                plt.plot(range(x.shape[0]-1),x[:-1,0,19],'r')
+                plt.plot(range(x.shape[0]),voltage_avg,'r--')
+                plt.fill_between(range(x.shape[0]), voltage_max, voltage_min, color = 'red', alpha = 0.5)
+                plt.plot(range(x.shape[0]-1),x[:-1,0,20],'b')
+                plt.plot(range(x.shape[0]),soc_avg,'b--')
+                plt.fill_between(range(x.shape[0]), soc_max, soc_min, color = 'blue', alpha = 0.5)
+                plt.legend(["actual voltage","est. voltage","volt. est. range", "actual soc","est. soc","soc est. range"])
+                plt.title("Voltage and SOC trajectory prediction")
+                
+                if (showed == False):
+                    #plt.colorbar()
+                    plt.pause(40)
+                    showed = True
+                plt.pause(0.01)
         
 
         return kld_loss, nll_loss, \
             (all_enc_mean, all_enc_std), \
             (all_dec_mean, all_dec_std) 
     
+        
+    def predict(self, x, reset = True):
+        estimation = np.zeros((x.shape[0],x.shape[1],2))
+        std_estimation = np.zeros((x.shape[0],x.shape[1],2))
 
-    def forecast_forward(self, x):
+        if (reset == True or (hasattr(self, 'h') == False)):
+            self.h = torch.zeros(self.n_layers, x.size(1), self.h_dim, device=device)
 
-        all_enc_mean, all_enc_std = [], []
-        all_dec_mean, all_dec_std = [], []
-        kld_loss = 0
-        nll_loss = 0
-
-        estimation = np.zeros(x.shape)
-        std_estimation = np.zeros(x.shape)
-
-        h = torch.zeros(self.n_layers, x.size(1), self.h_dim, device=device)
         for t in range(x.size(0)):
 
-            phi_x_t = self.phi_x(x[t])
+            phi_x_t = self.phi_x(x[t-1,:,:20])
 
             #encoder
-            enc_t = self.enc(torch.cat([phi_x_t, h[-1]], 1))
+            enc_t = self.enc(torch.cat([phi_x_t, self.h[-1]], 1))
             enc_mean_t = self.enc_mean(enc_t)
             enc_std_t = self.enc_std(enc_t) 
 
             #prior
-            prior_t = self.prior(h[-1])
+            prior_t = self.prior(self.h[-1])
             prior_mean_t = self.prior_mean(prior_t)
             prior_std_t = self.prior_std(prior_t)
 
@@ -183,48 +205,20 @@ class VRNN(nn.Module):
             phi_z_t = self.phi_z(z_t)
 
             #decoder
-            dec_t = self.dec(torch.cat([phi_z_t, h[-1]], 1))
+            dec_t = self.dec(torch.cat([phi_z_t, self.h[-1]], 1))
             dec_mean_t = self.dec_mean(dec_t)
             dec_std_t = self.dec_std(dec_t)
 
             #recurrence 
-            _, h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1).unsqueeze(0), h)
+            _, self.h = self.rnn(torch.cat([phi_x_t, phi_z_t], 1).unsqueeze(0), self.h)
 
             # calculate the estimation
             estimation[t,:,] = dec_mean_t.data
             std_estimation[t,:,] = dec_std_t.data
-
-            #computing losses
-            kld_loss += self._kld_gauss(enc_mean_t, enc_std_t, prior_mean_t, prior_std_t)
-            #nll_loss += self._nll_gauss(dec_mean_t, dec_std_t, x[t])
-            nll_loss += self._nll_bernoulli(dec_mean_t, x[t])
-
-            all_enc_std.append(enc_std_t)
-            all_enc_mean.append(enc_mean_t)
-            all_dec_mean.append(dec_mean_t)
-            all_dec_std.append(dec_std_t)
         
-        
-        # show what the network is actuall calculating
-        global showed
-        if (np.random.normal() < 0.01):
-            ax[0].set_title("iterated transformed data")
-            ax[1].set_title("est. mean")
-            ax[2].set_title("est. std")
-            ax[0].imshow(x[:,0,:])
-            ax[1].imshow(estimation[:,0,:])
-            ax[2].imshow(std_estimation[:,0,:])
-            if (showed == False):
-                plt.colorbar()
-                plt.pause(1)
-                showed = True
-            plt.pause(0.01)
-        
+        return estimation, std_estimation
 
-        return kld_loss, nll_loss, \
-            (all_enc_mean, all_enc_std), \
-            (all_dec_mean, all_dec_std)
-
+  
 
     def sample(self, seq_len):
 
