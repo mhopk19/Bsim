@@ -52,6 +52,10 @@ if __name__ == '__main__':
         estim_voltage_error = [0]
         current = [data[batch][0][0]]
         
+        # make Kalman filter soc guess near true soc
+        Kf.x[2,0] = max(0,min(1, data[batch][2][0] + np.random.normal() * 1/3))
+        
+        
         """
         update these based on data ^^
         true_SoC     = [battery_simulation.state_of_charge]
@@ -114,14 +118,14 @@ if __name__ == '__main__':
     
     plt.cla()
     plt.plot(range(inference_period), SOC_estim_avg, 'r')
-    plt.ylabel("Squared Error (V)")
+    plt.ylabel("Squared Error (%)")
     plt.xlabel("time step {}s".format(timestep))
     plt.title("EKF Mean Squared SOC Error")
     plt.savefig("./results/EKF_average_estimation_error")
 
     plt.cla()
     plt.plot(range(inference_period, inference_period + prediction_period), voltage_estim_avg, 'r')
-    plt.ylabel("Squared Error (%)")
+    plt.ylabel("Squared Error (V)")
     plt.xlabel("time step {}s".format(timestep))
     plt.title("EKF Mean Squared Voltage Error")
     plt.savefig("./results/EKF_average_voltage_error")    

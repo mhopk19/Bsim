@@ -3,53 +3,44 @@ import kf_utils as utils
 import numpy as np
 import math
 # empirical Poopanya et. al found parameters
-"""
-def Rs(soc):
+def set_Rs(soc):
     # milli ohms
     tabley = np.array([56, 56, 45, 42, 43, 42, 43, 44, 42, 50, 50]) / 1000
-    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
+    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)[0][0]
 
-def Rts(soc):
+def set_Rts(soc):
     # milli ohms
     tabley = np.array([13, 13, 20, 12, 15, 16, 17, 16, 17, 19, 19]) / 1000
-    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
+    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)[0][0]
 
-def Rtl(soc):
+def set_Rtl(soc):
     # milli ohms
     tabley = np.array([10, 10, 9, 9, 18, 13, 7, 10, 100, 10, 10]) / 1000
-    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
+    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)[0][0]
 
-def Cts(soc):
+def set_Cts(soc):
     # kilo farads
     tabley = np.array([11, 11, 0.45, 0.5, 3, 7, 4, 3, 1, 3, 3]) * 1000
-    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
+    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)[0][0]
 
-def Ctl(soc):
+def set_Ctl(soc):
     # kilo farads
     tabley = np.array([5, 5, 79, 20, 19, 1, 42, 183, 5, 100, 100]) * 1000
-    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
+    return np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)[0][0]
 
-def VOC(soc):
-    # open circuit voltage from interpolation function
-    tabley = np.array([2.81, 3.23, 3.45, 3.56, 3.65, 3.76, 3.84, 3.91, 4.08, 4.12, 4.2])
-    ocv = np.interp(soc, np.array([0,10,20,30,40,50,60,70,80,90,100]), tabley)
-    return ocv
-"""
 
 default_params = [0.1,0.2,0.4,0.5,0.5]
 
 class ExtendedKalmanFilter(object):
-
-    #def __init__(self):
-    #    self.randles_circuit()
     
-     
     def __init__(self, *args):
         self.time_step = 0.1
         self.std_dev = 0.05
         self.Q_tot = 1
+        self.update_steps = 0
+        self.update_frequency = 50
         if (len(args) == 0):
-            self.randles_circuit()
+            self.randles_circuit(initialize = True)
         else:
             x, F, B, P, Q, R = [*args]
             self.x = x
@@ -64,24 +55,39 @@ class ExtendedKalmanFilter(object):
             self.std_dev = 0.1
             self.Q_tot = 1
         
+
+    def update_circuit_params(self):
+        self.Rs = set_Rs(self.x[2] * 100)
+        self.Rts = set_Rts(self.x[2] * 100)
+        self.Rtl = set_Rtl(self.x[2] * 100)
+        self.Cts = set_Cts(self.x[2] * 100)
+        self.Ctl = set_Ctl(self.x[2] * 100)
         
-    def randles_circuit(self, *args):
+        new_circuit_params = [self.Rs, self.Rts, self.Cts, self.Rtl, self.Ctl]
+        print("new circuit params", new_circuit_params)
+        self.randles_circuit(initialize = False, circuit_params = new_circuit_params)
+        
+        return new_circuit_params
+        
+    def randles_circuit(self, initialize = True, circuit_params = None, measurement_params = None):
         # initial state (SoC is intentionally set to a wrong value)
         # x = [[SoC], [RC voltage]]
-        if (len(args) == 0):
+        if (circuit_params == None):
             # parameters for 100% soc poopanya
             Rs, Rts, Cts, Rtl, Ctl = [56/1000, 13/100, 11*1000, 10/1000, 5*1000]
         else:
-            Rs, Rts, Cts, Rtl, Ctl = [*args]
+            Rs, Rts, Cts, Rtl, Ctl = [*circuit_params]
+        
         self.Rs = Rs
         self.Rts = Rts
         self.Cts = Cts
         self.Rtl = Rtl
         self.Ctl = Ctl
         
-        self.x = np.matrix([[0.0],\
-                       [0.0],
-                       [0.60]])
+        if (initialize == True):
+            self.x = np.matrix([[0.0],\
+                           [0.0],
+                           [0.60]])
     
         exp_ts = math.exp(-self.time_step/(Cts*Rts))
         exp_tl = math.exp(-1/(Ctl*Rtl))
@@ -126,8 +132,6 @@ class ExtendedKalmanFilter(object):
         self.G = OCV_function(x[2,0]) - x[0,0] - x[1,0] - self.Rs * u
         return self.G
  
-    
-
 
     def predict_horizon(self, tau, u_series):
         # tau is the time horizon
@@ -164,17 +168,20 @@ class ExtendedKalmanFilter(object):
             PEst = (np.eye(len(xEst)) - K @ jH) @ PPred
             return xEst, PEst
         """
+        self.update_steps = self.update_steps + 1
+        
+        
         G_prime = self.G_prime_update(self.x)
         G = self.G_update(self.x, self.u)
 
         S = G_prime @ self.P @ G_prime.T + self.R
-        print("S", S)
-        print("S.I", S.I)
+        #print("S", S)
+        #print("S.I", S.I)
         self.K = self.P @ G_prime.T @ S.I
 
         hx =  G
         # inovation
-        print("K", self.K)
+        #print("K", self.K)
         inov = np.subtract(z, hx)
         self.x = self.x + self.K * inov
 
@@ -186,9 +193,15 @@ class ExtendedKalmanFilter(object):
         
         self.P = I_KH * self.P * I_KH.T + self.K * self.R * self.K.T
         #self.P = I_KH @ self.P
-        print("error covariance", self.P)
+        #print("error covariance", self.P)
     
     def predict(self, u=0):
+        if (self.update_steps % self.update_frequency == 0):
+            print("update steps", self.update_steps)
+            print("Rs", self.Rs)
+            self.update_circuit_params()
+            print("Rs", self.Rs)
+        
         self.u = u
         self.x_prev = self.x
         self.x = self.F @ self.x + self.B * u
