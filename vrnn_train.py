@@ -14,6 +14,7 @@ Neural Network (VRNN) from https://arxiv.org/abs/1506.02216
 using unimodal isotropic gaussian distributions for 
 inference, prior, and generating models."""
 
+loss_history = []
 def train(epoch):
     train_loss = 0
     for batch_idx, (data, _) in enumerate(train_loader):
@@ -34,6 +35,7 @@ def train(epoch):
         #plt.title("iterated transformed data")
         #plt.pause(1)
 
+        batch_loss = 0
         
         #forward + backward + optimize
         optimizer.zero_grad()
@@ -57,10 +59,19 @@ def train(epoch):
             #plt.imshow(sample.to(torch.device('cpu')).numpy())
             #plt.pause(0.1)
             
-            print("got here")
 
         train_loss += loss.item()
 
+    loss_history.append(train_loss)
+    plt.plot(range(len(loss_history)), loss_history, 'b')
+    plt.title("VRNN loss curve")
+    plt.ylabel("ELBO loss")
+    plt.xlabel("epochs")
+    if (epoch % 10 == 0):
+        plt.savefig("./results/VRNN_loss_curve") 
+    plt.pause(0.01)
+    
+    
     print('====> Epoch: {} Average loss: {:.4f}'.format(
         epoch, train_loss / len(train_loader.dataset)))
     

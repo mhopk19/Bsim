@@ -1,2 +1,8 @@
 *.png
 *.PNG
+*.ipynb
+9v_motor_sys_id.npy
+approx_entropy.py
+basic_coupled_diffs.py
+basic_eq_batter.py
+battery_dssm.py

@@ -127,6 +127,7 @@ if __name__ == '__main__':
             proxy_battery.x[:-1] = np.array(Kf.x).squeeze()
         else:
             estim_bounds = []
+            prev_voltage_buffer = mes_voltage[i-10:i]
         
         for i in range(inference_period, inference_period + prediction_period):
             time.append(time[-1] + timestep)
@@ -138,12 +139,23 @@ if __name__ == '__main__':
                 # estimated voltage is the proxy batteries voltage
                 estim_voltage.append(proxy_battery.x[3])
             else:
+                def LIFO(buffer):
+                    for i in range(len(buffer)):
+                        if (i==0):
+                            pass
+                        else:
+                            buffer[i-1] = buffer[i]
+                    return buffer
+                            
                 inputs = torch.tensor(current[i-10:i])
-                voltages = torch.tensor(mes_voltage[i-10:i])
+                voltages = torch.tensor(prev_voltage_buffer)#torch.tensor(mes_voltage[i-10:i])
+                prev_voltage_buffer = LIFO(prev_voltage_buffer)
+                
                 # 0 as a place holder for soc
                 vrnn_input = torch.unsqueeze(torch.unsqueeze(torch.cat([inputs,voltages,torch.tensor([0])]),0),0).float()
                 estimates = vrnn_model.predict(vrnn_input, reset = False)
                 estim_voltage.append(estimates[0][0][0][0])
+                prev_voltage_buffer[-1] = estimates[0][0][0][0]
                 estim_bounds.append(estimates[1][0][0][0])
                 
             cur_voltage = data[batch][1][i] + np.random.normal(0,0.1,1)[0]
@@ -160,7 +172,8 @@ if __name__ == '__main__':
         plt.cla()  
         plt.plot(range(inference_period, inference_period + prediction_period), mes_voltage[inference_period+1:], 'r')
         plt.plot(range(inference_period, inference_period + prediction_period), estim_voltage[inference_period+1:], 'r*')
-        plt.errorbar(range(inference_period, inference_period + prediction_period),estim_voltage[inference_period+1:],yerr = estim_bounds)
+        if (using_EKF == False):
+            plt.errorbar(range(inference_period, inference_period + prediction_period),estim_voltage[inference_period+1:],yerr = estim_bounds)
         plt.ylabel("V")
         plt.xlabel("time step {}s".format(timestep))
         plt.legend(["measured voltage", "pred. voltage"])
@@ -169,7 +182,8 @@ if __name__ == '__main__':
         
         # update average soc estimation value
         voltage_estim_avg = voltage_estim_avg + np.array(estim_voltage_error)[1:] / num_batches  
-        bound_fault_avg = bound_fault_avg + np.array(bound_fault)[1:] 
+        if (using_EKF == False):
+            bound_fault_avg = bound_fault_avg + np.array(bound_fault)[1:] 
     
     if (using_EKF == True):
         model_str = "EKF"

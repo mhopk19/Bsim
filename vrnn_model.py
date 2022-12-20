@@ -26,7 +26,7 @@ class VRNN(nn.Module):
     def __init__(self, x_dim, h_dim, z_dim, n_layers, bias=False):
         super(VRNN, self).__init__()
 
-        self.plotting = True
+        self.plotting = False
 
         self.x_dim = x_dim
         self.h_dim = h_dim
@@ -169,7 +169,7 @@ class VRNN(nn.Module):
                 
                 if (showed == False):
                     #plt.colorbar()
-                    plt.pause(40)
+                    plt.pause(3)
                     showed = True
                 plt.pause(0.01)
         
