@@ -5,8 +5,8 @@ In this project, Bayesian inference methods are compared with variational infere
 
 
 # Instructions
-To run the associated experiments run *estimator_tests.py*
-The variable `using_EKF` will determine whether the EKF or VRNN are used
+Run *estimator_tests.py* to perform the associated experiments.
+The variable `using_EKF` will determine whether the EKF or VRNN is used
 
 
 1. `vrnn_model.py` defines the VRNN model the model state dictionaries can be found in the "saves" folder
