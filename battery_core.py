@@ -132,7 +132,7 @@ def create_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limits =
     for batch in range(int(total_time / batch_timesteps)):
         # reset current vector
         i_batt = np.zeros((0,1))
-        # reset dead battery at beginning of new batch
+        # reset dead battery at BEGINNING of new batch
         if (battery.x[2] <= 0.05):
             battery = battery18650()
             

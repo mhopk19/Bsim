@@ -90,7 +90,7 @@ class ExtendedKalmanFilter(object):
                            [0.60]])
     
         exp_ts = math.exp(-self.time_step/(Cts*Rts))
-        exp_tl = math.exp(-1/(Ctl*Rtl))
+        exp_tl = math.exp(-self.time_step/(Ctl*Rtl))
         
         # state transition model
         self.F = np.matrix([[exp_ts, 0, 0],\
@@ -98,9 +98,9 @@ class ExtendedKalmanFilter(object):
                        [0,     0,  1]])
     
         # control-input model
-        self.B = self.time_step * np.matrix([[Rts*(1-exp_ts)],\
-                       [Rtl*(1-exp_tl)],
-                       [self.time_step/(self.Q_tot * 3200)]])
+        self.B =                 np.matrix([[Rts*(1-exp_ts)],\
+                                            [Rtl*(1-exp_tl)],
+                                            [-self.time_step/(self.Q_tot * 3200)]])
     
         # variance from std_dev
         var = self.std_dev ** 2

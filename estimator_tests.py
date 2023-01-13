@@ -10,15 +10,20 @@ from vrnn_model import VRNN
 if __name__ == '__main__':
     # time period
     timestep = 0.1
-    timesteps = 300
     inference_period = 200
     prediction_period = 100
+    
 
 
     # create data
-    load = True
+    load = False
     save = False
-    using_EKF = False
+    using_EKF = True
+    timesteps = inference_period + prediction_period
+    debugging = True
+    
+    
+    debug_fig, ax = plt.subplots(1,2)
     
     if (load):
         data = np.load("bat_tests.npy")
@@ -33,9 +38,7 @@ if __name__ == '__main__':
     proxy_battery = bat.battery18650()
     
     
-    if (using_EKF):
-        Kf = EKF()
-    else:
+    if (using_EKF == False):
         # create vrnn
         x_dim = 21
         h_dim = 100
@@ -57,6 +60,7 @@ if __name__ == '__main__':
         true_SoC = [data[batch][2][0]]
         
         if (using_EKF == True):
+            Kf = EKF()
             estim_SoC = [Kf.x[0,0]]
         else:
             estim_SoC = [0.5]
@@ -107,6 +111,7 @@ if __name__ == '__main__':
                     # 0 as a place holder for soc
                     vrnn_input = torch.unsqueeze(torch.unsqueeze(torch.cat([inputs,voltages,torch.tensor([0])]),0),0).float()
                     print("vrnn input shape", vrnn_input)
+                    # the reset variable allows the model to be reset before prediction begins
                     estimates = vrnn_model.predict(vrnn_input, reset = (i==10))
                     print("estimates", estimates)
                     estim_SoC.append(estimates[0][0][0][1])
@@ -116,7 +121,9 @@ if __name__ == '__main__':
             
             true_SoC.append(data[batch][2][i])
             estim_SoC_error.append(math.sqrt((100*(true_SoC[-1] - estim_SoC[-1]))**2))
-            
+        
+        
+        
         
         # update average soc estimation value
         SOC_estim_avg = SOC_estim_avg + np.array(estim_SoC_error)[1:] / num_batches
@@ -169,21 +176,34 @@ if __name__ == '__main__':
             
             estim_voltage_error.append(math.sqrt(((mes_voltage[-1] - estim_voltage[-1]))**2))
           
-        plt.cla()  
-        plt.plot(range(inference_period, inference_period + prediction_period), mes_voltage[inference_period+1:], 'r')
-        plt.plot(range(inference_period, inference_period + prediction_period), estim_voltage[inference_period+1:], 'r*')
+        # soc estimation
+        ax[0].cla()
+        ax[0].plot(range(inference_period), true_SoC[1:], 'b')
+        ax[0].plot(range(inference_period), estim_SoC[1:], 'b*-')
+        ax[0].set_ylabel("SoC (%)")
+        ax[0].set_xlabel("time step {}s".format(timestep))
+        ax[0].legend(["gt. SoC", "estim. SoC"])
+        ax[0].set_title("SoC Estimation")
+        # voltage tracking 
+        ax[1].cla()
+        ax[1].plot(range(inference_period, inference_period + prediction_period), mes_voltage[inference_period+1:], 'r')
+        ax[1].plot(range(inference_period, inference_period + prediction_period), estim_voltage[inference_period+1:], 'r*-')
         if (using_EKF == False):
-            plt.errorbar(range(inference_period, inference_period + prediction_period),estim_voltage[inference_period+1:],yerr = estim_bounds)
-        plt.ylabel("V")
-        plt.xlabel("time step {}s".format(timestep))
-        plt.legend(["measured voltage", "pred. voltage"])
-        plt.title("Voltage Tracking")
-        plt.pause(0.1)
+            ax[1].errorbar(range(inference_period, inference_period + prediction_period),estim_voltage[inference_period+1:],yerr = estim_bounds)
+        ax[1].set_ylabel("V")
+        ax[1].set_xlabel("time step {}s".format(timestep))
+        ax[1].legend(["measured voltage", "pred. voltage"])
+        ax[1].set_title("Voltage Tracking")
+        plt.pause(0.5)
         
         # update average soc estimation value
         voltage_estim_avg = voltage_estim_avg + np.array(estim_voltage_error)[1:] / num_batches  
         if (using_EKF == False):
             bound_fault_avg = bound_fault_avg + np.array(bound_fault)[1:] 
+    
+    # close the figure used for debugging to have fresh results figure
+    plt.close(debug_fig)
+    
     
     if (using_EKF == True):
         model_str = "EKF"

@@ -14,3 +14,30 @@ The variable `using_EKF` will determine whether the EKF or VRNN are used
 3. `make_vrnn_data.py` makes batch data for training the VRNN. This data is saved to `vrnn_train_data.npy`
 4. `ekf.py` stores the EKF
 5. `battery_core.py` defines the battery object used for simulations
+
+
+
+# Modeling
+
+
+
+# Battery Pack Simulation Method 
+
+Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Control"
+
+## Series Connections
+\begin{align}
+&i_k \text{ (given)}\\
+v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)
+\end{align}
+
+
+## Parallel Connections
+\begin{align}
+&v_{j,k} \text{ (fixed voltage for branch j at time k)}\\
+v_{pack}(t) &= \frac{\sum_{j=1}^N_p \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_p \frac{1}{R_{0,j}} }
+\end{align}
+From $v_k$ we can find the individual branch currents
+\begin{align}
+i_{j,k} &= \frac{v_{j,k} - v_k}{R_{0,j}}
+\end{align}
