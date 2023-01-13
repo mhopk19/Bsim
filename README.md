@@ -5,8 +5,8 @@ In this project, Bayesian inference methods are compared with variational infere
 
 
 # Instructions
-To run the associated experiments run *estimator_tests.py*
-The variable `using_EKF` will determine whether the EKF or VRNN are used
+Run *estimator_tests.py* to perform the associated experiments.
+The variable `using_EKF` will determine whether the EKF or VRNN is used
 
 
 1. `vrnn_model.py` defines the VRNN model the model state dictionaries can be found in the "saves" folder
@@ -14,6 +14,7 @@ The variable `using_EKF` will determine whether the EKF or VRNN are used
 3. `make_vrnn_data.py` makes batch data for training the VRNN. This data is saved to `vrnn_train_data.npy`
 4. `ekf.py` stores the EKF
 5. `battery_core.py` defines the battery object used for simulations
+<<<<<<< HEAD
 
 
 
@@ -41,3 +42,5 @@ From $v_k$ we can find the individual branch currents
 \begin{align}
 i_{j,k} &= \frac{v_{j,k} - v_k}{R_{0,j}}
 \end{align}
+=======
+>>>>>>> 34a91f350882dbd5e085917dc2ea9e69c4a6ca5a
