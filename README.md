@@ -63,5 +63,5 @@ v_{pack}(t) &= \frac{\sum_{j=1}^N_{p} \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=
 ```
 From $$v_k$$ we can find the individual branch currents
 ```math
-i_{j,k} = \frac{v_{j,k} - v_k}{R_{0,j}}
+i_{j,k} = \frac{v_{j,k} - v_{k}}{R_{0,j}}
 ```
