@@ -14,8 +14,11 @@ The variable `using_EKF` will determine whether the EKF or VRNN is used
 3. `make_vrnn_data.py` makes batch data for training the VRNN. This data is saved to `vrnn_train_data.npy`
 4. `ekf.py` stores the EKF
 5. `battery_core.py` defines the battery object used for simulations
-<<<<<<< HEAD
 
+
+# Testing
+Modules can be tested using the 'pytest' command within the 'tests' folder. All test files should be contained in files with "test" prefix or "test.py" suffix.
+All test methods should have a "test" prefix
 
 
 # Modeling
@@ -27,20 +30,19 @@ The variable `using_EKF` will determine whether the EKF or VRNN is used
 Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Control"
 
 ## Series Connections
-\begin{align}
+'''math
 &i_k \text{ (given)}\\
 v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)
-\end{align}
+'''
 
 
 ## Parallel Connections
-\begin{align}
+'''math
 &v_{j,k} \text{ (fixed voltage for branch j at time k)}\\
 v_{pack}(t) &= \frac{\sum_{j=1}^N_p \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_p \frac{1}{R_{0,j}} }
-\end{align}
+'''
 From $v_k$ we can find the individual branch currents
-\begin{align}
+'''math
 i_{j,k} &= \frac{v_{j,k} - v_k}{R_{0,j}}
-\end{align}
-=======
->>>>>>> 34a91f350882dbd5e085917dc2ea9e69c4a6ca5a
+'''
+

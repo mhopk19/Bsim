@@ -120,6 +120,42 @@ class battery18650():
         self.x_hist = np.vstack((self.x_hist, self.x))
 
 
+"""
+series battery pack consisting of
+3200mAH 18650 Battery model with default parameters
+and functions for updating state space parameters
+"""
+class series_battery_pack():
+    def __init__(self, cells = 3, start_voltage = 4.2, start_SOC = 100, pack_params = {}):
+        """
+        if these parameters are singular, they are copied to each battery. Otherwise,
+        if the parameters are lists the different values are copied to different batteries
+        """
+        self.battery_pack = cells * [None]
+        for cell_num in range(cells):
+            # voltage initialization
+            if (len(start_voltage) == 1):
+                voltage = start_voltage
+            else:
+                voltage = start_voltage[cell_num]
+            # SOC initialization
+            if (len(start_SOC) == 1):
+                SOC = start_SOC
+            else:
+                SOC = start_SOC[cell_num]
+            # battery param. initialization
+            if (len(pack_params) == 1):
+                params = pack_params 
+            else:
+                params = pack_params[cell_num]
+                            
+            battery = battery18650(start_voltage = voltage, start_SOC = SOC, battery_params = params)
+            self.battery_pack[cell_num] = battery
+        
+        
+        
+
+
 def create_data(batch_timesteps = 100, total_time = 6000, dt = 0.1, cur_limits = (-1,1), 
                     battery_params_dict = {}, rnn_data = True):
     print("creating battery data...")
