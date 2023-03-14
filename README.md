@@ -56,18 +56,18 @@ x&=8\\
 \end{align}
 ```
 
+$$i_k$$ the applied current is given
 ```math
 \begin{align}
-&i_k \text{ (given)}
 v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)
 \end{align}
 ```
 
 ## Parallel Connections
+$$v_{j,k}$$ fixed voltage for branch j at time k
 ```math
 \begin{align}
-v_{j,k} \text{ (fixed voltage for branch j at time k)}
-v_{pack}(t) &= \frac{\sum_{j=1}^N_p \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_p \frac{1}{R_{0,j}} }
+v_{pack}(t) &= \frac{\sum_{j=1}^N_{p} \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_{p} \frac{1}{R_{0,j}} }
 \end{align}
 ```
 From $$v_k$$ we can find the individual branch currents
