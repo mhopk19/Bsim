@@ -49,6 +49,12 @@ x&=8
 \end{align}
 ```
 
+```math
+\begin{align}
+y&=5\\
+x&=8\\
+\end{align}
+```
 
 ```math
 \begin{align}
