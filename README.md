@@ -33,6 +33,20 @@ Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Contro
 ## Series Connections
 
 ```math
+\begin{align}y&=5\\x&=8\end{align}
+```
+
+\begin{align}y&=5\\x&=8\end{align}
+
+```math
+\begin{align}
+y&=5
+x&=8
+\end{align}
+```
+
+
+```math
 \begin{align}
 &i_k \text{ (given)}
 v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)
