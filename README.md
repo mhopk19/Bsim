@@ -43,7 +43,7 @@ Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Contro
 y&=5\\
 x&=8\\
 &\frac{5}{6}\\
-&\sum_{{j=1}}^N_{p}\\
+&\sum_{j=1}^{N_{p}}\\
 \end{align}
 ```
 
