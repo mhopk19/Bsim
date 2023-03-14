@@ -36,12 +36,15 @@ Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Contro
 ```math
 \begin{align}y&=5\\x&=8\end{align}
 ```
--->
+--->
+
 ```math
 \begin{align}
 y&=5\\
 x&=8\\
-&\frac{5}{6}
+&\frac{5}{6}\\
+&\sum_{j=1}^N_{p}\\
+&i_{j,k}\\
 \end{align}
 ```
 
