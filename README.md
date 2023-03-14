@@ -32,21 +32,9 @@ Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Contro
 
 ## Series Connections
 
+<!--- these styles work
 ```math
 \begin{align}y&=5\\x&=8\end{align}
-```
-
-```math
-\begin{align}&\text{5}\\x&=8\end{align}
-```
-
-\begin{align}y&=5\\x&=8\end{align}
-
-```math
-\begin{align}
-y&=5
-x&=8
-\end{align}
 ```
 
 ```math
@@ -55,6 +43,7 @@ y&=5\\
 x&=8\\
 \end{align}
 ```
+-->
 
 $$i_k$$ the applied current is given
 ```math
