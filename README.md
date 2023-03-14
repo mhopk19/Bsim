@@ -36,14 +36,14 @@ Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Contro
 ```math
 \begin{align}y&=5\\x&=8\end{align}
 ```
-
+-->
 ```math
 \begin{align}
 y&=5\\
 x&=8\\
+&\frac{5}{6}
 \end{align}
 ```
--->
 
 $$i_k$$ the applied current is given
 ```math
