@@ -29,22 +29,16 @@ All test methods should have a "test" prefix
 
 Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Control"
 
-$$y=x^2$$
 
 ## Series Connections
-'''math
-&i_k \text{ (given)}\\
-v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)
-'''
+
+$$&i_k \text{ (given)}\\
+v_{pack}(t) &= (\sum_{k=1}^N_s v_{cell,k}(t) ) - N_{cells}R_{interconnect}i(t)$$
 
 
 ## Parallel Connections
-'''math
-&v_{j,k} \text{ (fixed voltage for branch j at time k)}\\
-v_{pack}(t) &= \frac{\sum_{j=1}^N_p \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_p \frac{1}{R_{0,j}} }
-'''
+$$&v_{j,k} \text{ (fixed voltage for branch j at time k)}\\
+v_{pack}(t) &= \frac{\sum_{j=1}^N_p \frac{v_{j,k}(t)}{R_{0,j}} - i_k}{\sum_{j=1}^N_p \frac{1}{R_{0,j}} }$$
 From $v_k$ we can find the individual branch currents
-'''math
-i_{j,k} &= \frac{v_{j,k} - v_k}{R_{0,j}}
-'''
+$$i_{j,k} &= \frac{v_{j,k} - v_k}{R_{0,j}}$$
 
