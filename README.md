@@ -29,6 +29,8 @@ All test methods should have a "test" prefix
 
 Referenced from Plett 2015 lecture notes "ECE5720: Battery Management and Control"
 
+$$y=x^2$$
+
 ## Series Connections
 '''math
 &i_k \text{ (given)}\\
